@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamBrowser - CBT Nasional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #e2e8f0;
+            font-family: 'Arial', sans-serif;
+            user-select: none;
+        }
+        .header-blue {
+            background-color: #1e40af;
+        }
+        .sidebar-item {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+        }
+        .sidebar-item.current {
+            background-color: #1e40af;
+            color: white;
+            border-color: #1e40af;
+        }
+        .sidebar-item.answered {
+            background-color: #10b981;
+            color: white;
+            border-color: #059669;
+        }
+        .sidebar-item.doubt {
+            background-color: #f59e0b;
+            color: white;
+            border-color: #d97706;
+        }
+        .option-label {
+            width: 35px;
+            height: 35px;
+            border: 1px solid #1e40af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 15px;
+            flex-shrink: 0;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .option-row:hover {
+            background-color: #f1f5f9;
+        }
+        .option-row.selected .option-label {
+            background-color: #1e40af;
+            color: white;
+        }
+        .option-row.selected {
+            background-color: #eff6ff;
+        }
+        #sidebar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+        .btn-nav {
+            padding: 10px 25px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Bar -->
+    <div class="header-blue text-white p-3 px-6 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <div class="bg-white p-1 rounded">
+                <img src="https://www.kemdikbud.go.id/main/files/large/837821fc0039233" alt="Logo" class="h-8 w-auto" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Kemdikbud.png'">
+            </div>
+            <div>
+                <h1 class="text-sm font-bold leading-tight">EXAMBROWSER CBT</h1>
+                <p class="text-xs opacity-80">UJIAN ASTS SEJARAH KELAS XI</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <div class="text-xs opacity-80">Sisa Waktu</div>
+            <div id="timer" class="text-xl font-bold font-mono">01:30:00</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Left: Question Area -->
+        <div class="flex-1 flex flex-col bg-white overflow-y-auto">
+            <!-- Question Header -->
+            <div class="border-b p-4 flex justify-between items-center bg-gray-50">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-800 text-white px-3 py-1 text-sm font-bold">SOAL NO</span>
+                    <span id="q-num-display" class="text-xl font-black text-blue-800">1</span>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="text-xs bg-gray-200 px-2 py-1 rounded border hover:bg-gray-300">Ukuran Font: A A A</button>
+                </div>
+            </div>
+
+            <!-- Question Body -->
+            <div id="question-content" class="p-8 flex-1">
+                <div id="q-text" class="text-lg text-gray-800 leading-relaxed mb-8">
+                    <!-- Text Soal -->
+                </div>
+
+                <div id="options-list" class="space-y-4">
+                    <!-- Opsi Jawaban -->
+                </div>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="p-4 bg-gray-100 border-t flex justify-between items-center px-8">
+                <button id="btn-prev" onclick="changeQ(-1)" class="btn-nav bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-50">
+                    SOAL SEBELUMNYA
+                </button>
+                <div class="flex items-center bg-yellow-400 p-2 rounded cursor-pointer select-none" onclick="toggleDoubt()">
+                    <input type="checkbox" id="check-ragu" class="w-4 h-4 mr-2">
+                    <label for="check-ragu" class="text-xs font-bold cursor-pointer">RAGU - RAGU</label>
+                </div>
+                <button id="btn-next" onclick="changeQ(1)" class="btn-nav bg-blue-700 text-white hover:bg-blue-800">
+                    SOAL BERIKUTNYA
+                </button>
+            </div>
+        </div>
+
+        <!-- Right: Sidebar Status -->
+        <div class="w-full md:w-80 bg-gray-50 border-l flex flex-col">
+            <div class="p-4 border-b bg-blue-800 text-white font-bold text-center uppercase tracking-wider">
+                Daftar Soal
+            </div>
+            <div class="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                <div id="sidebar-grid">
+                    <!-- Grid nomor 1-60 -->
+                </div>
+            </div>
+            <div class="p-4 border-t bg-gray-100">
+                <button onclick="finishAttempt()" id="btn-finish" class="w-full bg-red-600 text-white py-3 font-bold rounded hover:bg-red-700">
+                    SELESAI UJIAN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-finish" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white rounded shadow-2xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold text-red-600 mb-4 uppercase">Konfirmasi Selesai</h3>
+            <p class="text-gray-600 mb-6">Apakah Anda yakin ingin mengakhiri ujian? Pastikan semua soal telah terjawab.</p>
+            <div class="flex space-x-3">
+                <button onclick="closeModal()" class="flex-1 py-2 bg-gray-200 font-bold rounded">TIDAK</button>
+                <button onclick="showFinalResults()" class="flex-1 py-2 bg-red-600 text-white font-bold rounded">YA, SELESAI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result View (Fullscreen Overlay) -->
+    <div id="result-view" class="hidden fixed inset-0 bg-white z-[200] overflow-y-auto">
+        <div class="max-w-4xl mx-auto p-6 md:p-12">
+            <div class="text-center mb-10 border-b pb-8">
+                <h1 class="text-4xl font-black text-blue-900 mb-2">HASIL UJIAN KOMPETENSI</h1>
+                <p class="text-gray-500 font-medium">Laporan Hasil ASTS Sejarah - Pendudukan Jepang</p>
+            </div>
+            
+            <div class="flex justify-center items-center space-x-8 mb-12 bg-blue-50 p-8 rounded-xl">
+                <div class="text-center">
+                    <div class="text-sm uppercase font-bold text-blue-600">Skor Akhir</div>
+                    <div id="res-score" class="text-7xl font-black text-blue-900">0</div>
+                </div>
+                <div class="h-20 w-px bg-blue-200"></div>
+                <div class="text-left">
+                    <div class="text-sm text-gray-600 mb-1">Benar: <span id="res-correct" class="font-bold text-green-600">0</span></div>
+                    <div class="text-sm text-gray-600 mb-1">Salah: <span id="res-wrong" class="font-bold text-red-600">0</span></div>
+                    <div class="text-sm text-gray-600">Total Soal: 60</div>
+                </div>
+            </div>
+
+            <h2 class="text-2xl font-bold mb-6 border-l-4 border-blue-800 pl-4 uppercase">Pembahasan Lengkap</h2>
+            <div id="discussion-list" class="space-y-8">
+                <!-- Discussion injected here -->
+            </div>
+
+            <div class="mt-12 text-center pb-12">
+                <button onclick="location.reload()" class="bg-blue-800 text-white px-10 py-4 font-bold rounded shadow-lg hover:bg-blue-900">
+                    KEMBALI KE HALAMAN UTAMA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DATA LENGKAP 60 SOAL DARI DOKUMEN (Tanpa Ringkasan)
+        const allQuestions = [
+            { q: "Sebelum era modern, Jepang merupakan negara yang feodalis. Hal ini dipertegas lagi pada tahun 1639 ketika Keshogunan Tokugawa menerapkan kebijakan menutup Jepang dari semua pengaruh dari luar, terutama pengaruh Barat. Kebijakan tertutup ini disebut juga sebagai kebijakan Sakoku. Berdasarkan informasi tersebut, dapat disimpulkan bahwa Jepang berusaha melindungi negaranya dari", opts: ["A. Perebutan kekuasaan di kalangan penguasa Jepang", "B. Ancaman pemberontakan-pemberontakan dalam negeri", "C. Pengaruh-pengaruh yang merusak nilai kehidupan Jepang", "D. Penguasaan Korea terhadap wilayah-wilayah Jepang yang berpotensi", "E. Melindungi bahan mentah oleh pihak luar"], ans: 2, exp: "Kebijakan Sakoku bertujuan melindungi Jepang dari pengaruh asing (Barat) yang dianggap merusak nilai tradisional dan stabilitas politik." },
+            { q: "Salah satu faktor yang melatarbelakangi kebijakan Sakoku di Jepang sejak tahun 1639 adalah", opts: ["A. Kedatangan bangsa Barat dianggap mengancam stabilitas negara Jepang", "B. Dependensi Barat terhadap perdagangan dengan bangsa Jepang", "C. Barat menerapkan monopoli perdagangan di Jepang", "D. Barat berniat menduduki dan menguasai Jepang", "E. Adanya perbedaan ras dan adat-istiadat"], ans: 0, exp: "Kedatangan Barat dengan misi agama dan dagang dianggap mengancam stabilitas politik oleh Shogun Tokugawa." },
+            { q: "Pada masa pemerintahan Kaisar Hirohito, Jepang mulai menerapkan politik ekspansi yang dilandasi oleh prinsip yang sangat agresif. Prinsip yang membenarkan penaklukan tersebut adalah", opts: ["A. Kebijakan Sakoku yang diperbarui", "B. Semangat Restorasi Meiji", "C. Doktrin Hakko Ichiu", "D. Politik dumping dalam perdagangan", "E. Ideologi Fasisme yang murni"], ans: 2, exp: "Hakko Ichiu (Delapan Penjuru Dunia di Bawah Satu Atap) digunakan sebagai landasan imperialisme Jepang di Asia." },
+            { q: "Perang Dunia II di kawasan Asia Pasifik antara Amerika Serikat dan Jepang dilatarbelakangi oleh sebuah peristiwa besar yang memicu kemarahan Amerika. Peristiwa tersebut adalah", opts: ["A. Penyerangan pangkalan militer Pearl Harbour oleh angkatan udara Jepang", "B. Invasi militer Jepang ke wilayah Hindia Belanda", "C. Ekspansi Jepang ke wilayah Indocina pasca kekalahan Prancis", "D. Kekalahan Prancis atas Jerman di Eropa", "E. Penyerangan Jepang atas Tiongkok pada tahun 1937"], ans: 0, exp: "Serangan ke Pearl Harbour pada 7 Des 1941 menyeret AS ke Perang Pasifik." },
+            { q: "Tujuan utama dibentuknya persekutuan militer ABDACOM oleh pihak Sekutu pada tahun 1941 adalah untuk", opts: ["A. Melawan dan membendung kekuatan Jepang dalam Perang Pasifik", "B. Melawan kekuatan militer Belanda di wilayah Nusantara", "C. Melindungi kepentingan ekonomi Belanda di Hindia Belanda", "D. Membantu Indocina melepaskan diri dari pengaruh Jepang", "E. Membebaskan wilayah Prancis dari pendudukan Jerman"], ans: 0, exp: "ABDACOM dibentuk sebagai komando gabungan sekutu untuk melawan ekspansi Jepang." },
+            { q: "Organisasi Chuo Sangi In merupakan lembaga bentukan Jepang yang dipimpin oleh tokoh nasionalis Ir. Soekarno. Tugas pokok organisasi ini adalah", opts: ["A. Membentuk kekuatan militer rakyat untuk melawan Sekutu", "B. Mengawasi gerak-gerik para pejuang bawah tanah", "C. Melakukan mobilisasi tenaga kerja dari kalangan pribumi", "D. Melatih pemuda Indonesia dalam bidang pertahanan udara", "E. Memberikan saran atau tindakan politik kepada pemerintah militer Jepang"], ans: 4, exp: "Chuo Sangi In memberikan pertimbangan kepada Saiko Shikikan (pemerintah tertinggi militer Jepang)." },
+            { q: "Tujuan Soekarno dan Hatta menemui Mayor Jenderal Nishimura sebelum merumuskan teks proklamasi adalah untuk", opts: ["A. Mengundang Nishimura untuk menghadiri rapat PPKI", "B. Meminta izin secara resmi untuk memproklamasikan kemerdekaan", "C. Menjajaki sikap Nishimura mengenai rencana Proklamasi kemerdekaan", "D. Meminta kehadiran Nishimura dalam acara pembacaan teks proklamasi", "E. Meminta tolong agar Jepang membantu teknis kemerdekaan"], ans: 2, exp: "Tokoh bangsa menjajaki sikap Jepang (status quo) setelah mereka kalah dari Sekutu." },
+            { q: "Penyerahan kekuasaan tanpa syarat dari pihak Belanda (Sekutu) kepada pihak Jepang berlangsung di wilayah", opts: ["A. Kotabaru", "B. Pidie", "C. Kotagede", "D. Kalijati, Subang", "E. Cisarua"], ans: 3, exp: "Belanda menyerah di Kalijati, Subang, pada 8 Maret 1942." },
+            { q: "Tujuan utama Jepang membentuk organisasi Jawa Hokokai pada tahun 1944 adalah", opts: ["A. Agar rakyat Jawa bersatu padu melawan tentara Sekutu", "B. Membuktikan niat baik Jepang kepada rakyat Indonesia", "C. Memperoleh prajurit-prajurit perang yang tangguh dari kalangan rakyat", "D. Mendidik para pemimpin bangsa Indonesia agar mandiri", "E. Agar rakyat Jawa mendarmabaktikan segenap tenaga kepada Jepang"], ans: 4, exp: "Jawa Hokokai menuntut pengabdian total rakyat demi mendukung perang Jepang." },
+            { q: "Pada masa pendudukan Jepang, rakyat Indonesia diwajibkan untuk menanam pohon jarak. Hal ini dikarenakan biji jarak sangat berguna sebagai", opts: ["A. Bahan baku pembuatan gula cair", "B. Bahan campuran pembuatan mesiu senjata", "C. Obat-obatan untuk prajurit di medan perang", "D. Bahan pelumas pesawat terbang dan senjata militer", "E. Alat peralatan pelengkap perang"], ans: 3, exp: "Minyak jarak sangat penting sebagai pelumas mesin perang militer Jepang." },
+            { q: "Tindakan pertama yang dilakukan oleh para pemuda di Jakarta segera setelah mendengar kabar kekalahan Jepang adalah", opts: ["A. Membunuh tentara Jepang yang masih tersisa", "B. Mengibarkan bendera merah putih di seluruh penjuru kota", "C. Mendesak Soekarno dan Hatta agar segera memproklamasikan kemerdekaan", "D. Merampas senjata-senjata milik militer Jepang", "E. Segera memproklamirkan kemerdekaan sebelum pasukan Sekutu datang"], ans: 2, exp: "Mendesak Soekarno-Hatta agar memproklamasikan kemerdekaan tanpa pengaruh Jepang." },
+            { q: "Upaya bangsa Indonesia dalam menyiapkan kemerdekaan melalui lembaga resmi (organisasi bentukan Jepang) dilakukan dengan jalan", opts: ["A. Mengadakan persiapan kemerdekaan secara mandiri tanpa sepengetahuan Jepang", "B. Meminta bantuan penuh kepada pihak Jepang untuk merdeka", "C. Mengadakan sidang-sidang PPKI untuk menyusun dasar negara", "D. Memantau terus perkembangan perang di luar negeri", "E. Memanfaatkan sarana yang diberikan oleh Jepang untuk memperjuangkan kemerdekaan"], ans: 4, exp: "Taktik kooperatif digunakan dengan memanfaatkan sarana resmi Jepang (BPUPKI/PPKI)." },
+            { q: "Perlawanan rakyat di berbagai daerah terhadap pendudukan Jepang sering kali dipicu oleh kebijakan Seikerei, yaitu", opts: ["A. Penyerahan wajib hasil panen kepada pemerintah militer", "B. Perbudakan wanita-wanita Indonesia (Jugun Itianfu)", "C. Kerja paksa tanpa upah yang sangat menyiksa (Romusha)", "D. Kerja di perkebunan-perkebunan besar milik Jepang", "E. Menghormati Kaisar Jepang dengan membungkukkan badan ke arah matahari terbit"], ans: 4, exp: "Seikerei ditentang keras oleh kalangan ulama dan rakyat karena dianggap melanggar tauhid." },
+            { q: "Pernyataan di bawah ini yang tidak termasuk ke dalam ciri-ciri perjuangan bawah tanah adalah", opts: ["A. Dilakukan secara tertutup dan rahasia", "B. Dilakukan dalam bentuk sebuah organisasi", "C. Seolah-olah mau bekerja sama dengan pihak penjajah", "D. Diwujudkan dalam bentuk perlawanan bersenjata secara terbuka", "E. Semangat persatuan yang tinggi antar kelompok"], ans: 3, exp: "Perjuangan bawah tanah tidak bersifat konfrontasi militer terbuka (frontal)." },
+            { q: "Organisasi MIAI yang bersifat religius akhirnya dibubarkan oleh Jepang dan digantikan dengan organisasi baru yang disebut", opts: ["A. Masyumi", "B. Muhammadiyah", "C. Nahdatul Ulama", "D. Jamiat Kheir", "E. Sarekat Islam"], ans: 0, exp: "Masyumi dibentuk untuk menggantikan MIAI agar Jepang lebih mudah mengontrol umat Islam." },
+            { q: "Pemberlakuan sistem Tonarigumi (Rukun Tetangga) oleh Jepang di Indonesia sebenarnya bertujuan untuk", opts: ["A. Mempermudah pengaturan dan mobilisasi penduduk", "B. Menghitung jumlah penduduk Indonesia secara akurat", "C. Mengawasi aktivitas penduduk yang dicurigai sebagai mata-mata", "D. Melakukan reorganisasi masyarakat ke arah yang lebih modern", "E. Menciptakan keteraturan sosial di tingkat desa"], ans: 0, exp: "Sistem RT ini memudahkan mobilisasi rakyat dan pengawasan keamanan tingkat paling bawah." },
+            { q: "Janji Koiso (janji kemerdekaan) diberikan oleh Perdana Menteri Kuniaki Koiso dengan maksud agar", opts: ["A. Jepang dapat melakukan mobilisasi rakyat secara besar-besaran", "B. Jepang tetap dapat mempertahankan pengaruhnya di Indonesia", "C. Jepang dianggap sebagai pahlawan pejuang kemerdekaan", "D. Jepang tetap memperoleh bantuan dari rakyat Indonesia untuk memenangi perang", "E. Jepang mempengaruhi rakyat agar tidak memberikan bantuan kepada Sekutu"], ans: 3, exp: "Janji manis diberikan agar Indonesia tetap membantu Jepang yang sedang terdesak Sekutu." },
+            { q: "Salah satu realisasi dari Janji Koiso adalah pembentukan BPUPKI. Hal ini mencatat perubahan besar bagi perjuangan bangsa Indonesia yaitu", opts: ["A. Jepang secara resmi memberikan kemerdekaan", "B. BPUPKI akan mewujudkan kemerdekaan Indonesia melalui langkah nyata", "C. Bangsa Indonesia hanya perlu menanti kemerdekaan 'kelak kemudian hari'", "D. Rakyat Indonesia diberikan kebebasan berpendapat", "E. Rakyat Indonesia menanti hadiah kemerdekaan"], ans: 1, exp: "BPUPKI adalah langkah nyata penyelidikan dan persiapan struktur negara Indonesia." },
+            { q: "Arti penting dari pidato Kaisar Hirohito yang berkaitan dengan Deklarasi Potsdam adalah", opts: ["A. Menandai berakhirnya Perang Asia Timur Raya", "B. Menandai kebangkitan kembali kekuatan militer Jepang", "C. Merupakan perintah langsung untuk menyerahkan kekuasaan di Indonesia", "D. Memberikan kemerdekaan penuh kepada seluruh jajahan Jepang", "E. Menyebabkan terjadinya vacuum of power secara seketika"], ans: 0, exp: "Pernyataan menyerahnya Jepang mengakhiri Perang Pasifik." },
+            { q: "Bagi para pejuang Indonesia, arti penting dari 'janji' yang diberikan Jepang di akhir masa pendudukannya adalah", opts: ["A. Meningkatkan semangat antikolonialisme di kalangan rakyat", "B. Mendorong keinginan untuk secepatnya merdeka", "C. Memicu generasi muda untuk memaksa munculnya proklamasi kemerdekaan", "D. Menjadi alasan kuat untuk menunda pelaksanaan proklamasi", "E. Merupakan tanda bahwa Jepang sudah menyerah sepenuhnya"], ans: 2, exp: "Situasi tersebut memacu pemuda mendesak Proklamasi segera." },
+            { q: "Landasan ideologis yang melatarbelakangi tindakan ekspansionis agresif Kaisar Hirohito pada masa itu adalah", opts: ["A. Kebijakan Sakoku", "B. Semangat Restorasi Meiji", "C. Kebijakan politik dumping", "D. Strategi perang Kamikaze", "E. Konsep universal Hakko Ichiu"], ans: 4, exp: "Hakko Ichiu adalah landasan utama agresi militer Jepang." },
+            { q: "Mengapa pembentukan persekutuan ABDACOM dianggap sangat krusial pada masa itu?", opts: ["A. Untuk menghentikan dominasi ekonomi Inggris", "B. Untuk menanggulangi ekspansi militer Jepang di wilayah Asia Tenggara", "C. Untuk mendukung kemerdekaan negara-negara di Asia", "D. Sebagai respons terhadap agresi Jerman di Eropa", "E. Untuk menguasai kembali jalur rempah-rempah"], ans: 1, exp: "ABDACOM dibentuk untuk menghambat laju invasi militer Jepang." },
+            { q: "Tujuan utama pembentukan berbagai organisasi paramiliter oleh Jepang di Indonesia adalah", opts: ["A. Mengajarkan nilai-nilai kebudayaan Jepang", "B. Memberikan dukungan kepada Jepang dalam upaya mereka menghadapi Perang Pasifik", "C. Menyiapkan militer Indonesia untuk masa depan", "D. Membantu proses pelucutan senjata tentara Belanda", "E. Menekan perlawanan rakyat secara internal"], ans: 1, exp: "Organisasi paramiliter dipersiapkan untuk membantu pertahanan Jepang." },
+            { q: "Manakah di bawah ini yang bukan merupakan tujuan awal kedatangan Jepang ke wilayah Indonesia?", opts: ["A. Indonesia dijadikan sebagai tempat pemasaran hasil industri Jepang", "B. Indonesia dijadikan rekan sekutu untuk melawan Amerika Serikat", "C. Indonesia sebagai pemasok utama kebutuhan minyak bumi", "D. Indonesia sebagai sumber bahan baku bagi industri Jepang", "E. Indonesia sebagai sumber tenaga kerja murah untuk perang"], ans: 0, exp: "Prioritas Jepang adalah eksploitasi logistik perang, bukan pemasaran barang." },
+            { q: "Organisasi pergerakan yang diperbolehkan tetap berdiri pada awal pendudukan karena dianggap tidak berbahaya adalah", opts: ["A. Masyumi", "B. MIAI", "C. Putra", "D. Jawa Hokokai", "E. Hisbullah"], ans: 1, exp: "MIAI awalnya diizinkan tetap berdiri karena berorientasi agama." },
+            { q: "Mengapa Jepang secara intensif menguras kekayaan alam di nusantara selama masa pendudukan?", opts: ["A. Khawatir kekayaan tersebut akan diambil kembali oleh Belanda", "B. Merupakan hak mutlak sebagai pemenang perang", "C. Karena Jepang sangat memerlukan cadangan sumber daya alam Indonesia untuk menopang kebutuhan logistik dan industri perangnya", "D. Karena sumber daya tersebut hanya ditemukan di Tarakan", "E. Untuk mencapai target geografis tertentu"], ans: 2, exp: "Kekayaan alam Indonesia digunakan untuk membiayai kebutuhan perang besar Jepang." },
+            { q: "Peristiwa Proklamasi 17 Agustus secara substansial menunjukkan bahwa", opts: ["A. Kekuatan militer Indonesia sudah sangat kuat", "B. Jepang sudah tidak memiliki kontrol lagi", "C. Keinginan bangsa Indonesia untuk merdeka jauh lebih besar daripada ketergantungan pada pihak manapun", "D. Momentum tersebut adalah waktu yang paling optimal", "E. Klaim Jepang sebagai saudara tua adalah palsu"], ans: 2, exp: "Menunjukkan kedaulatan dan kemandirian bangsa Indonesia." },
+            { q: "Apa yang menjadi pembeda utama antara gerakan bawah tanah dengan perjuangan melalui organisasi bentukan Jepang?", opts: ["A. Fokus pada pembinaan nasionalisme", "B. Upaya pengumpulan massa yang besar", "C. Bersikap radikal dan anti-kompromi terhadap Jepang", "D. Memiliki program kerja yang lebih terarah", "E. Kerjasama yang erat dengan pemerintah"], ans: 2, exp: "Gerakan bawah tanah bersifat radikal dan non-kooperatif." },
+            { q: "Penyerahan tanpa syarat pihak Belanda kepada Jepang di Kalijati diwakili oleh", opts: ["A. Jenderal Karel Doorman", "B. Gubernur Jenderal Tjarda van Starkenborgh", "C. Letnan Jenderal Philip Cristison", "D. Dr. H.J Van Mook", "E. Jenderal H. Ter Poorten"], ans: 4, exp: "Jenderal H. Ter Poorten menandatangani dokumen menyerahnya Belanda." },
+            { q: "Tokoh pejuang bawah tanah yang dikenal sangat aktif menyadap siaran radio Sekutu adalah", opts: ["A. Sukarni", "B. Ahmad Subardjo", "C. Wikana", "D. Sutan Syahrir", "E. Ahmad Syarifuddin"], ans: 3, exp: "Sutan Syahrir memonitor kekalahan Jepang melalui radio." },
+            { q: "Bagaimana metode pemilihan presiden Republik Indonesia yang pertama kali dilakukan dalam sejarah?", opts: ["A. Melalui mekanisme pemilihan umum", "B. Melalui Aklamasi dalam sidang PPKI", "C. Melalui proses yang sangat demokratis", "D. Berdasarkan pertimbangan politis tertentu", "E. Melalui musyawarah antar golongan"], ans: 1, exp: "Dilakukan secara aklamasi atas usul Otto Iskandardinata." },
+            { q: "Tujuan utama Jepang di balik intensifikasi budidaya tanaman jarak adalah untuk", opts: ["A. Membuka lapangan kerja baru", "B. Memenuhi kebutuhan minyak pelumas untuk kepentingan militer Jepang", "C. Menjadikan jarak sebagai komoditas ekspor", "D. Melakukan upaya penghijauan", "E. Menciptakan bahan bakar nabati untuk rakyat"], ans: 1, exp: "Minyak jarak untuk pelumas kendaraan tempur." },
+            { q: "Esensi utama dari pembagian zona militer di Nusantara oleh pemerintah Jepang adalah", opts: ["A. Pembentukan negara federasi", "B. Mempercepat proses kemerdekaan", "C. Strategi Jepang untuk memfasilitasi pengawasan dan pengelolaan efektif atas seluruh wilayah yang didudukinya", "D. Upaya apresiasi terhadap keragaman budaya", "E. Penyerahan kekuasaan secara bertahap"], ans: 2, exp: "Pembagian wilayah militer mempermudah kontrol administrasi penjajah." },
+            { q: "Ciri utama dari eksploitasi sumber daya alam dan manusia oleh pemerintah Jepang adalah", opts: ["A. Segala hasil eksploitasi diabdikan untuk kepentingan perang", "B. Penghormatan terhadap hak milik tanah", "C. Untuk meningkatkan kesejahteraan rakyat", "D. Sumber daya tersebut menjadi milik bersama", "E. Fokus pada tanaman-tanaman ekspor tradisional"], ans: 0, exp: "Segala sumber daya dipusatkan untuk menunjang mesin perang (War Economy)." },
+            { q: "Strategi utama Jepang untuk mempertahankan loyalitas rakyat Indonesia saat posisi mereka mulai terdesak adalah", opts: ["A. Membangun infrastruktur modern", "B. Menggulirkan janji manis akan kemerdekaan penuh bagi bangsa Indonesia dalam waktu dekat", "C. Meningkatkan kapasitas produksi", "D. Memperluas wilayah kekuasaan baru", "E. Membangun pusat-pusat industri"], ans: 1, exp: "Menggunakan Janji Koiso agar rakyat terus membantu." },
+            { q: "Apa tujuan utama Jepang merekrut Romusha secara besar-besaran di Indonesia?", opts: ["A. Pembangunan infrastruktur sipil", "B. Membantu pasukan Sekutu", "C. Menunjang kebutuhan perang Jepang secara mendesak", "D. Sebagai tenaga buruh di perkebunan", "E. Menyiapkan tenaga kerja untuk merdeka"], ans: 2, exp: "Romusha dipekerjakan untuk membangun sarana pertahanan." },
+            { q: "Tugas pokok dari anggota Heiho selama masa pendudukan Jepang adalah sebagai", opts: ["A. Satuan keamanan di tingkat desa", "B. Pasukan garis depan militer Jepang", "C. Kelompok pemuda penggerak ekonomi", "D. Pembantu prajurit Jepang di medan perang", "E. Cikal bakal pembentukan TNI"], ans: 3, exp: "Heiho adalah tentara pembantu (Auxiliary Forces)." },
+            { q: "Polisi rahasia militer Jepang yang sangat ditakuti karena kekejamannya adalah", opts: ["A. Seinendan", "B. Heiho", "C. Kempetai", "D. Gakukotai", "E. Keibondan"], ans: 2, exp: "Kempetai adalah polisi rahasia Jepang yang represif." },
+            { q: "Apa tujuan utama Jepang mendirikan organisasi semi militer seperti Seinendan dan Keibondan?", opts: ["A. Menjamin keamanan lokal", "B. Menyiapkan kemerdekaan Indonesia", "C. Merekrut tenaga cadangan untuk membantu perang Jepang", "D. Menanamkan jiwa nasionalisme Indonesia", "E. Memberikan keterampilan sipil"], ans: 2, exp: "Menciptakan barisan pembantu perang (cadangan)." },
+            { q: "Janji Koiso membawa implikasi kebijakan yang secara simbolis menguntungkan Indonesia, yaitu", opts: ["A. Kebebasan mengakses radio luar negeri", "B. Tokoh-tokoh nasional diperbolehkan rapat tertutup", "C. Pemberian pelatihan bahasa asing", "D. Bendera Merah Putih diperbolehkan berkibar berdampingan dengan bendera Jepang", "E. Pembukaan jalur kerjasama luar negeri"], ans: 3, exp: "Simbol nasional diperbolehkan muncul untuk merayu rakyat." },
+            { q: "Pemberontakan PETA di Blitar pada dasarnya dilatarbelakangi oleh", opts: ["A. Perlakuan semena-mena dan kekejaman pelatih Jepang", "B. Pembunuhan terhadap kepala daerah setempat", "C. Upaya untuk menarik perhatian dunia internasional", "D. Kebijakan pajak yang tidak adil", "E. Sikap pejabat lokal yang sewenang-wenang"], ans: 0, exp: "Dipicu empati terhadap penderitaan rakyat dan kekejaman pelatih." },
+            { q: "Mengapa kaum muda Indonesia secara tegas menolak pelaksanaan proklamasi melalui lembaga PPKI?", opts: ["A. PPKI dianggap tidak representatif", "B. PPKI merupakan badan buatan Jepang", "C. Jumlah anggota PPKI terlalu banyak", "D. Tidak adanya perwakilan pemuda dalam PPKI", "E. PPKI berisi orang-orang Jepang"], ans: 1, exp: "PPKI dianggap sebagai badan yang dikendalikan Jepang." },
+            { q: "Mengapa Bahasa Indonesia dapat berkembang dengan sangat pesat pada masa pendudukan Jepang?", opts: ["A. Larangan penggunaan bahasa Belanda dan kewajiban berbahasa Indonesia", "B. Adanya upaya propaganda melalui bahasa", "C. Perubahan nama-nama tempat secara massal", "D. Pembukaan kursus bahasa secara luas", "E. Semua pegawai pemerintah wajib berbahasa Indonesia"], ans: 0, exp: "Dilarangnya bahasa musuh (Belanda) membuat Bahasa Indonesia menjadi bahasa utama." },
+            { q: "Mengapa organisasi Putera justru sering digunakan oleh para pemimpin Indonesia untuk menggalang nasionalisme?", opts: ["A. Putera menjadi wadah bagi tokoh nasionalis untuk berkomunikasi dengan rakyat", "B. Pemimpin Putera memiliki sikap anti-Jepang", "C. Putera difokuskan untuk persiapan merdeka", "D. Putera melatih rakyat dalam bidang intelijen", "E. Putera merupakan media propaganda utama"], ans: 0, exp: "Tokoh nasionalis memanfaatkan akses massa di Putera." },
+            { q: "Organisasi Putera dimanfaatkan oleh para pemimpin Indonesia karena memiliki kemampuan untuk", opts: ["A. Menggerakkan rakyat untuk membantu Jepang", "B. Menyatukan seluruh rakyat Jawa untuk melawan Sekutu", "C. Membangkitkan semangat nasionalisme dan kepercayaan diri bangsa Indonesia", "D. Membujuk kaum intelektual agar pro-Jepang", "E. Menarik perhatian dunia internasional"], ans: 2, exp: "Digunakan sebagai alat agitasi dan nasionalisme." },
+            { q: "Pemberian janji kemerdekaan oleh PM Koiso bertujuan agar bangsa Indonesia mau", opts: ["A. Segera merancang struktur negara", "B. Memberikan dukungan penuh kepada Jepang dalam Perang Asia Timur Raya", "C. Mengirimkan lebih banyak tenaga kerja dan SDA", "D. Menjadi sekutu militer dalam PD II", "E. Menyiapkan calon-calon pemimpin masa depan"], ans: 1, exp: "Menarik simpati rakyat di tengah kekalahan beruntun Jepang." },
+            { q: "Tujuan utama diterapkannya kebijakan self-sufficiency (autarki) oleh Jepang adalah untuk", opts: ["A. Mengurangi ketergantungan suatu daerah terhadap daerah lain dalam hal logistik", "B. Memastikan distribusi barang berjalan lancar", "C. Menciptakan pemerataan ekonomi di seluruh daerah", "D. Mengurangi beban finansial pemerintah pusat Jepang", "E. Meningkatkan semangat gotong royong antar penduduk"], ans: 0, exp: "Menghadapi isolasi akibat blokade laut Sekutu." },
+            { q: "Fakta bahwa Proklamasi 17 Agustus dilakukan mendahului janji kemerdekaan Jepang membuktikan bahwa", opts: ["A. Kemerdekaan Indonesia bukan merupakan hadiah dari Jepang", "B. Pihak Jepang tidak konsisten dengan janjinya", "C. Bangsa Indonesia sudah mampu melawan Jepang secara militer", "D. Para pemimpin Indonesia sangat sigap memanfaatkan momen", "E. Jepang bukan merupakan saudara tua yang baik"], ans: 0, exp: "Menegaskan kemerdekaan adalah hasil perjuangan mandiri." },
+            { q: "Inti dari tujuan pembentukan Jawa Hokokai pada tahun 1944 adalah", opts: ["A. Membentuk pasukan rakyat yang siap tempur", "B. Mendukung program Gerakan Tiga A", "C. Mengumpulkan dukungan rakyat untuk melakukan pengorbanan demi kepentingan Jepang", "D. Menyiapkan proses kemerdekaan Indonesia", "E. Menopang perekonomian Jepang yang mulai hancur"], ans: 2, exp: "Memaksa rakyat berkorban demi pertahanan Jepang." },
+            { q: "Faktor pendorong utama di balik terjadinya pemberontakan PETA adalah", opts: ["A. Adanya eksekusi terhadap pemimpin lokal", "B. Perlakuan kejam dan penindasan yang terus-menerus oleh Jepang terhadap penduduk lokal", "C. Kebijakan pajak yang dianggap tidak adil", "D. Perebutan jabatan di tingkat sewenang-wenang", "E. Upaya Jepang menarik simpati yang gagal"], ans: 1, exp: "Kemanusiaan dan empati terhadap romusha yang menderita." },
+            { q: "Apa penyebab utama meletusnya Perlawanan PETA di wilayah Blitar?", opts: ["A. Penderitaan rakyat akibat penindasan yang dilakukan Jepang", "B. Ketidakinginan anggota PETA untuk berlatih militer", "C. Penolakan terhadap upacara-upacara Jepang", "D. Keinginan untuk menguji kemampuan tempur", "E. Kebijakan penarikan padi yang tidak adil"], ans: 0, exp: "Muak dengan penindasan terhadap rakyat jelata." },
+            { q: "Organisasi yang secara masif menyebarkan slogan 'Nippon Cahaya Asia' adalah", opts: ["A. Chuo Sangi In", "B. Gerakan Tiga A", "C. Jawa Hokokai", "D. Putera", "E. Gerakan Tiga N"], ans: 1, exp: "Semboyan Tiga A: Cahaya, Pemimpin, Pelindung Asia." },
+            { q: "Apa yang dimaksud dengan 'status quo' dalam konteks sejarah kemerdekaan Indonesia?", opts: ["A. Upaya untuk mencapai kemerdekaan secepat mungkin", "B. Kebijakan untuk menciptakan kemakmuran bersama", "C. Tindakan untuk mendorong perlawanan rakyat", "D. Memelihara kondisi atau situasi yang ada saat itu, tanpa perubahan yang signifikan", "E. Kebijakan untuk menjamin keamanan pasukan Sekutu"], ans: 3, exp: "Kondisi tidak boleh berubah sampai Sekutu mendarat." },
+            { q: "Apa makna sebenarnya dari istilah 'vacuum of power' yang terjadi di Indonesia?", opts: ["A. Kondisi di mana pasukan Sekutu telah menguasai Indonesia", "B. Keadaan di mana Jepang telah menyerah kalah kepada Sekutu, namun Sekutu belum tiba di Indonesia", "C. Kondisi di mana kendali Belanda telah pulih sepenuhnya", "D. Keadaan di mana rakyat Indonesia tidak ingin merdeka", "E. Kondisi persaingan kekuasaan antar negara besar"], ans: 1, exp: "Kekosongan penguasa di Indonesia antara 15-17 Agustus 1945." },
+            { q: "Dampak positif dari kebijakan militer Jepang terhadap perjuangan bangsa Indonesia adalah", opts: ["A. Terciptanya kemandirian pangan yang berkelanjutan", "B. Adanya lonjakan hasil perkebunan rakyat", "C. Kemajuan yang pesat dalam bidang pendidikan formal", "D. Terbentuknya sistem ekonomi uang yang modern", "E. Latihan militer Jepang menjadi benih awal lahirnya TNI"], ans: 4, exp: "Lulusan PETA dan Heiho menjadi tulang punggung TKR/TNI." },
+            { q: "Apa penyebab utama perubahan lokasi pembacaan proklamasi dari Lapangan Ikada ke kediaman Soekarno?", opts: ["A. Khawatir terjadinya bentrok berdarah antara rakyat dan tentara Jepang", "B. Keinginan agar suasana proklamasi lebih khidmat", "C. Karena kondisi kesehatan Soekarno yang sedang sakit", "D. Merupakan permintaan langsung dari pemerintah militer Jepang", "E. Lapangan Ikada sedang digunakan untuk latihan militer Sekutu"], ans: 0, exp: "Menghindari konfrontasi langsung dengan militer Jepang yang berjaga di Ikada." },
+            { q: "Inti permasalahan yang menyebabkan ketegangan hebat antara Golongan Tua dan Golongan Muda adalah mengenai", opts: ["A. Penentuan lokasi pelaksanaan upacara", "B. Siapa yang memiliki otoritas untuk mendeklarasikan proklamasi", "C. Penentuan waktu yang paling krusial dan momentum yang tepat untuk merdeka", "D. Redaksi kalimat dalam teks proklamasi", "E. Alasan utama mengapa Indonesia harus merdeka"], ans: 2, exp: "Debat soal kemandirian proklamasi dan momentum menyerahnya Jepang." },
+            { q: "Manakah pernyataan di bawah ini yang paling akurat mencerminkan corak kebijakan ekonomi Jepang?", opts: ["A. Fokus pada penggunaan mata uang lokal", "B. Mengutamakan kesejahteraan penduduk pribumi", "C. Jepang mengarahkan seluruh potensi untuk menopang kebutuhan logistik dan industri perang", "D. Kemajuan pesat dalam perkebunan rakyat", "E. Pengelolaan sumber daya dilakukan secara bersama"], ans: 2, exp: "Ekonomi dikuras untuk kepentingan militerisme." },
+            { q: "Faktor apa yang menjadi pemicu utama kemerosotan ekonomi di Indonesia pada masa pendudukan Jepang?", opts: ["A. Sistem ekonomi yang diterapkan oleh Jepang tidak efektif dan kurangnya pengawasan terhadap sektor pertanian serta perkebunan rakyat.", "B. Masyarakat Indonesia belum memiliki kapabilitas yang memadai dalam mengelola sektor pertanian dan perkebunan secara mandiri.", "C. Terjadinya inflasi yang sangat tinggi dan krisis ekonomi yang berkepanjangan akibat dampak Perang Dunia II secara global.", "D. Fokus Jepang yang mutlak pada persiapan dan pelaksanaan perang membuat mereka mengesampingkan pembangunan ekonomi di wilayah jajahan.", "E. Kebijakan Jepang yang secara masif dan intensif menguras habis sumber daya alam dan manusia Indonesia demi kepentingan mesin perangnya."], ans: 4, exp: "Eksploitasi berlebihan tanpa memedulikan daya tahan ekonomi rakyat." },
+            { q: "Berikut ini yang tidak termasuk dampak dari pendudukan Jepang dalam bidang ekonomi adalah...", opts: ["A. Diterapkannya sistem ekonomi yang pro rakyat", "B. Melakukan setor wajib hasil pertanian yang memberatkan", "C. Kebijakan memenuhi kebutuhan secara mandiri", "D. Melakukan pengawasan yang ketat dalam bidang ekonomi", "E. Berfokus pada komoditas-komoditas pertanian tertentu"], ans: 0, exp: "Ekonomi masa Jepang sangatlah eksploitatif dan menyengsarakan." }
+        ];
+
+        let currentIndex = 0;
+        let userAnswers = new Array(allQuestions.length).fill(null);
+        let doubtStatus = new Array(allQuestions.length).fill(false);
+
+        // Timer
+        let seconds = 90 * 60;
+        function updateTimer() {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            document.getElementById('timer').innerText = 
+                `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            if (seconds > 0) seconds--;
+        }
+        setInterval(updateTimer, 1000);
+
+        function renderSidebar() {
+            const grid = document.getElementById('sidebar-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < allQuestions.length; i++) {
+                const item = document.createElement('div');
+                item.className = 'sidebar-item';
+                item.innerText = i + 1;
+                
+                if (i === currentIndex) item.classList.add('current');
+                else if (doubtStatus[i]) item.classList.add('doubt');
+                else if (userAnswers[i] !== null) item.classList.add('answered');
+
+                item.onclick = () => { currentIndex = i; renderQuestion(); };
+                grid.appendChild(item);
+            }
+        }
+
+        function renderQuestion() {
+            const q = allQuestions[currentIndex];
+            document.getElementById('q-num-display').innerText = currentIndex + 1;
+            document.getElementById('q-text').innerText = q.q;
+
+            const list = document.getElementById('options-list');
+            list.innerHTML = '';
+            
+            const labels = ['A', 'B', 'C', 'D', 'E'];
+            q.opts.forEach((opt, i) => {
+                const row = document.createElement('div');
+                row.className = `option-row flex items-center p-3 border rounded cursor-pointer transition ${userAnswers[currentIndex] === i ? 'selected' : 'border-gray-200'}`;
+                
+                row.innerHTML = `
+                    <div class="option-label">${labels[i]}</div>
+                    <div class="text-gray-700">${opt}</div>
+                `;
+                
+                row.onclick = () => {
+                    userAnswers[currentIndex] = i;
+                    renderQuestion();
+                    renderSidebar();
+                };
+                list.appendChild(row);
+            });
+
+            document.getElementById('check-ragu').checked = doubtStatus[currentIndex];
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            
+            if (currentIndex === allQuestions.length - 1) {
+                document.getElementById('btn-next').innerText = "SELESAI";
+            } else {
+                document.getElementById('btn-next').innerText = "SOAL BERIKUTNYA";
+            }
+            renderSidebar();
+        }
+
+        function changeQ(dir) {
+            if (dir === 1 && currentIndex === allQuestions.length - 1) {
+                finishAttempt();
+                return;
+            }
+            currentIndex += dir;
+            renderQuestion();
+        }
+
+        function toggleDoubt() {
+            doubtStatus[currentIndex] = !doubtStatus[currentIndex];
+            document.getElementById('check-ragu').checked = doubtStatus[currentIndex];
+            renderSidebar();
+        }
+
+        function finishAttempt() {
+            document.getElementById('modal-finish').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-finish').classList.add('hidden');
+        }
+
+        function showFinalResults() {
+            closeModal();
+            document.getElementById('result-view').classList.remove('hidden');
+            
+            let correct = 0;
+            const list = document.getElementById('discussion-list');
+            list.innerHTML = '';
+
+            allQuestions.forEach((q, i) => {
+                const isCorrect = userAnswers[i] === q.ans;
+                if (isCorrect) correct++;
+
+                const box = document.createElement('div');
+                box.className = `p-6 border-l-8 rounded shadow-sm ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`;
+                
+                box.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="font-black text-gray-400">#${i + 1}</span>
+                        <span class="text-xs font-bold px-2 py-1 rounded ${isCorrect ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                            ${isCorrect ? 'BENAR' : 'SALAH'}
+                        </span>
+                    </div>
+                    <p class="font-bold text-gray-800 mb-4">${q.q}</p>
+                    <div class="text-sm space-y-1 mb-4">
+                        <p>Jawaban Anda: <span class="font-bold">${userAnswers[i] !== null ? q.opts[userAnswers[i]] : '(Kosong)'}</span></p>
+                        <p>Kunci Jawaban: <span class="font-bold text-green-700">${q.opts[q.ans]}</span></p>
+                    </div>
+                    <div class="bg-white p-4 rounded border text-sm text-gray-600 leading-relaxed italic">
+                        <strong>Pembahasan:</strong> ${q.exp}
+                    </div>
+                `;
+                list.appendChild(box);
+            });
+
+            document.getElementById('res-score').innerText = Math.round((correct / 60) * 100);
+            document.getElementById('res-correct').innerText = correct;
+            document.getElementById('res-wrong').innerText = 60 - correct;
+            window.scrollTo(0,0);
+        }
+
+        // Initialize
+        renderQuestion();
+        renderSidebar();
+    </script>
+</body>
+</html>
+
